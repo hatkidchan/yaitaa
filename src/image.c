@@ -47,7 +47,7 @@ void get_size_keep_aspect(int w, int h, int dw, int dh, int *ow, int *oh)
   {
     tmp_1 = floor(dh * ratio);
     tmp_2 = ceil(dh * ratio);
-    if (fabsf(ratio - (float)tmp_1 / dh) < fabsf(ratio - (float)tmp_w / dh))
+    if (fabsf(ratio - (float)tmp_1 / dh) < fabsf(ratio - (float)tmp_2 / dh))
       *ow = tmp_1 < 1 ? 1 : tmp_1;
     else
       *ow = tmp_2 < 1 ? 1 : tmp_2;
