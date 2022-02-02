@@ -1,5 +1,15 @@
 #include "colors.h"
 #include <math.h>
+#include <stdbool.h>
+#include <string.h>
+
+palette_t c_palette_bw = {
+  .n_colors = 2,
+  .palette = {
+    {   0,   0,   0, 0 },
+    { 255, 255, 255, 0 }
+  }
+};
 
 palette_t c_palette_ansi_discord = {
   .n_colors = 8,
@@ -124,21 +134,52 @@ float calc_brightness(rgba8 c)
   return 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b;
 }
 
-void load_palette_gpl(palette_t *pal, FILE *fp)
+bool load_palette_gpl(palette_t *pal, FILE *fp)
 {
-  (void)pal; (void)fp;
-  // TODO: load GIMP palette file
+  static char buf[8192];
+  fgets(buf, 8192, fp); // GIMP Palette
+  fgets(buf, 8192, fp); // Name: %s
+  fgets(buf, 8192, fp); // Columns: %d
+  
+  pal->n_colors = 0;
+  while (!feof(fp) && pal->n_colors < 256)
+  {
+    fgets(buf, 8192, fp);
+    int r, g, b;
+    if (sscanf(buf, "%d %d %d", &r, &g, &b) == 3)
+    {
+      pal->palette[pal->n_colors].r = r;
+      pal->palette[pal->n_colors].g = g;
+      pal->palette[pal->n_colors].b = b;
+      pal->n_colors++;
+    }
+  }
+  return true;
 }
 
-void load_palette_raw(palette_t *pal, FILE *fp)
+bool load_palette_raw(palette_t *pal, FILE *fp)
 {
-  (void)pal; (void)fp;
-  // TODO: load raw palette file
+  while (!feof(fp))
+  {
+    size_t sz = fread(&pal->palette[pal->n_colors++], 1, sizeof(rgba8), fp);
+    if (sz == 0 && feof(fp)) break;
+    if (sz != sizeof(rgba8)) return false;
+  }
+  return true;
 }
 
-void load_palette(palette_t *pal, FILE *fp)
+bool load_palette(palette_t *pal, FILE *fp)
 {
-  (void)pal; (void)fp;
-  // TODO: guess palette file type and load it
+  static char head[16];
+  if (fread(head, sizeof(char), 12, fp) < 12) return false;
+  if (fseek(fp, 0, SEEK_SET) != 0) return false;
+  if (!strncmp(head, "GIMP Palette", 12))
+  {
+    return load_palette_gpl(pal, fp);
+  }
+  else
+  {
+    return load_palette_raw(pal, fp);
+  }
 }
 

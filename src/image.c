@@ -16,7 +16,6 @@ image_t *image_load(FILE *file)
   return img;
 }
 
-
 image_t *image_resize(image_t *img, int width, int height)
 {
   image_t *res = calloc(1, sizeof(image_t));
@@ -28,6 +27,64 @@ image_t *image_resize(image_t *img, int width, int height)
       (unsigned char *)res->pixels,
       res->width, res->height, 0, STBI_rgb_alpha);
   return res;
+}
+
+void __dither_update_pixel(image_t *img, int x, int y, int err[3], float bias)
+{
+  if (x < 0 || x >= img->width || y < 0 || y >= img->height) return;
+  rgba8 pix = img->pixels[x + y * img->width];
+  int dst[3] = { pix.r, pix.g, pix.b };
+  dst[0] += (int)((float)err[0] * bias);
+  dst[1] += (int)((float)err[1] * bias);
+  dst[2] += (int)((float)err[2] * bias);
+  pix.r = (dst[0] > 255 ? 255 : (dst[0] < 0 ? 0 : dst[0]));
+  pix.g = (dst[1] > 255 ? 255 : (dst[1] < 0 ? 0 : dst[1]));
+  pix.b = (dst[2] > 255 ? 255 : (dst[2] < 0 ? 0 : dst[2]));
+  memcpy(&img->pixels[x + y * img->width], &pix, sizeof(rgba8));
+}
+
+
+// TODO: make it work better sometime in future (for some reason it sucks rn)
+image_t *image_dither_fn(image_t *img, dither_quantizer_t quantize, void *param)
+{
+  image_t *res = calloc(1, sizeof(image_t));
+  int w = res->width = img->width;
+  int h = res->height = img->height;
+  res->pixels = calloc(img->width * img->height, sizeof(rgba8));
+  memcpy(res->pixels, img->pixels, img->width * img->height * sizeof(rgba8));
+  for (int y = 0; y < h; y++)
+  {
+    for (int x = 0; x < w; x++)
+    {
+      rgba8 old = res->pixels[x + y * w];
+      rgba8 new = quantize(old, param);
+      res->pixels[x + y * w].r = new.r;
+      res->pixels[x + y * w].g = new.g;
+      res->pixels[x + y * w].b = new.b;
+      int err[3] = {
+        (int)old.r - (int)new.r,
+        (int)old.g - (int)new.g, 
+        (int)old.b - (int)new.b
+      };
+      __dither_update_pixel(res, x + 1, y    , err, 7.0f / 16.0f);
+      __dither_update_pixel(res, x - 1, y + 1, err, 3.0f / 16.0f);
+      __dither_update_pixel(res, x    , y + 1, err, 5.0f / 16.0f);
+      __dither_update_pixel(res, x + 1, y + 1, err, 1.0f / 16.0f);
+    }
+  }
+  return res;
+}
+
+rgba8 __image_quantize_pal(rgba8 clr, void *param)
+{
+  palette_t palette = *(palette_t *)param;
+  int ndx = closest_color(palette, clr);
+  return palette.palette[ndx];
+}
+
+image_t *image_dither(image_t *img, palette_t pal)
+{
+  return image_dither_fn(img, __image_quantize_pal, &pal);
 }
 
 void image_unload(image_t *img)

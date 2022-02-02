@@ -222,6 +222,26 @@ int prepare_state(int argc, char **argv, asc_args_t args, asc_state_t *state)
   state->source_image = image_load(image_file);
   fclose(image_file);
   
+  if (args.out_style == ASC_STL_PALETTE)
+  {
+    FILE *fp = fopen(args.palette_filename, "rb");
+    if (fp == NULL)
+    {
+      int err = errno;
+      fprintf(stderr, "Error: failed to open file %s for reading: %d: %s\n",
+          args.palette_filename, err, strerror(err));
+      return -100 - err;
+    }
+    state->palette = calloc(1, sizeof(palette_t));
+    if (!load_palette(state->palette, fp))
+    {
+      fprintf(stderr, "Error: failed to read palette\n");
+      fclose(fp);
+      return -7;
+    }
+    fclose(fp);
+  }
+  
   state->out_file = stdout;
   if (strcmp(args.output_filename, "-"))
     state->out_file = fopen(args.output_filename, "wb");
