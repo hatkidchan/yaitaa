@@ -32,15 +32,15 @@ image_t *image_resize(image_t *img, int width, int height)
 void __dither_update_pixel(image_t *img, int x, int y, int err[3], float bias)
 {
   if (x < 0 || x >= img->width || y < 0 || y >= img->height) return;
-  rgba8 pix = img->pixels[x + y * img->width];
+  int i = x + y * img->width;
+  rgba8 pix = img->pixels[i];
   int dst[3] = { pix.r, pix.g, pix.b };
-  dst[0] += (int)((float)err[0] * bias);
-  dst[1] += (int)((float)err[1] * bias);
-  dst[2] += (int)((float)err[2] * bias);
-  pix.r = (dst[0] > 255 ? 255 : (dst[0] < 0 ? 0 : dst[0]));
-  pix.g = (dst[1] > 255 ? 255 : (dst[1] < 0 ? 0 : dst[1]));
-  pix.b = (dst[2] > 255 ? 255 : (dst[2] < 0 ? 0 : dst[2]));
-  memcpy(&img->pixels[x + y * img->width], &pix, sizeof(rgba8));
+  dst[0] += (int)(((float)err[0]) * bias);
+  dst[1] += (int)(((float)err[1]) * bias);
+  dst[2] += (int)(((float)err[2]) * bias);
+  img->pixels[i].r = (dst[0] > 255 ? 255 : (dst[0] < 0 ? 0 : dst[0]));
+  img->pixels[i].g = (dst[1] > 255 ? 255 : (dst[1] < 0 ? 0 : dst[1]));
+  img->pixels[i].b = (dst[2] > 255 ? 255 : (dst[2] < 0 ? 0 : dst[2]));
 }
 
 

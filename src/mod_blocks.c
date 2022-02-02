@@ -57,7 +57,6 @@ void mod_blocks_prepare(asc_state_t *state)
       case ASC_STL_TRUECOLOR:
       case ASC_STL_ENDL:
         break;
-
     }
     if (res != NULL)
     {

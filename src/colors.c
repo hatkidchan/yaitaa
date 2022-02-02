@@ -91,17 +91,17 @@ int closest_color(palette_t pal, rgba8 color)
 
 int closest_256(palette_t pal, rgba8 color)
 {
-  (void)pal; (void)color;
+  (void)pal;
   if (color.r == color.g && color.g == color.b)
   {
     if (color.r < 8) return 16;
     if (color.r > 248) return 231;
-    return 232 + ceil((color.r - 8.0) / 247.0 * 24.0);
+    return 232 + (int)ceil((color.r - 8.0) / 247.0 * 24.0);
   }
-  uint8_t oc = 16;
-  oc += 36 * ceil(color.r / 255.0 * 5.0);
-  oc += 6  * ceil(color.g / 255.0 * 5.0);
-  oc +=      ceil(color.b / 255.0 * 5.0);
+  int oc = 16;
+  oc += 36 * (int)ceil(color.r / 255.0 * 5.0);
+  oc += 6  * (int)ceil(color.g / 255.0 * 5.0);
+  oc +=      (int)ceil(color.b / 255.0 * 5.0);
   return oc;
 }
 
