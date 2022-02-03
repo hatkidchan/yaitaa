@@ -28,7 +28,13 @@ int main(int argc, char **argv)
       mod_braille_prepare(&state);
       mod_braille_main(state);
       break;
-    default:
+    case ASC_MOD_GRADIENT:
+      fprintf(stderr, "Error: ASC_MOD_GRADIENT is not implemented yet\n");
+      break;
+    case ASC_MOD_BRUTEFORCE:
+      fprintf(stderr, "Error: ASC_MOD_BRUTEFORCE is not implemented yet\n");
+      break;
+    case ASC_MOD_ENDL:
       break;
   }
 

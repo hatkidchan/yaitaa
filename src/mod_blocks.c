@@ -199,7 +199,7 @@ void __blk_put_pixel(asc_state_t state, rgba8 top, rgba8 bot, bool final)
           case ASC_STL_ANSI_VGA: pal = c_palette_ansi_vga; break;
           case ASC_STL_ANSI_XTERM: pal = c_palette_ansi_xterm; break;
           case ASC_STL_ANSI_DISCORD: pal = c_palette_ansi_discord; break;
-          default: break;
+          default: c_fatal(9, "[UNREACH] Palette is unset"); return;
         }
         int index_top = closest_color(pal, top),
             index_bot = closest_color(pal, bot);

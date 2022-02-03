@@ -52,7 +52,7 @@ const __option_t __style_options[ASC_STL_ENDL + 1] = {
     "24-bit RGB (TrueColor)" },
   { ASC_STL_PALETTE,
     { "pal", "palette", "custom", NULL },
-    "Custom palette (specified via -P)" },
+    "Custom palette (specified via -P). Either GIMP palette file or N*3 RGB pixels" },
   { -1, { NULL }, NULL }
 };
 

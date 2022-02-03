@@ -1,5 +1,7 @@
 #include "colors.h"
 #include "commons.h"
+#include <stdio.h>
+#include <stdlib.h>
 
 void m_prepare_dither(asc_state_t *state)
 {
@@ -36,4 +38,10 @@ void m_prepare_dither(asc_state_t *state)
       state->image = res;
     }
   }
+}
+
+void c_fatal(int code, const char *reason)
+{
+  fprintf(stderr, "Error: %s\n", reason);
+  exit(code);
 }
