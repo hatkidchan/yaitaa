@@ -26,7 +26,7 @@ void __blk_start_output(asc_state_t state)
     case ASC_FMT_JSON:
       fprintf(state.out_file, "{\n");
       fprintf(state.out_file, "  \"width\": %d,\n", state.image->width);
-      fprintf(state.out_file, "  \"height\": %d,\n", state.image->height);
+      fprintf(state.out_file, "  \"height\": %d,\n", state.image->height / 2);
       fprintf(state.out_file, "  \"data\": [");
       break;
     case ASC_FMT_HTML:

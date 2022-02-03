@@ -1,3 +1,4 @@
+#include "version.h"
 #include "args.h"
 #include "colors.h"
 #include <getopt.h>
@@ -77,12 +78,15 @@ void usage(int argc, char **argv)
   fprintf(stderr, "[-M MODE] [-S STYLE] [-F FORMAT] [-P PALETTE] ");
   fprintf(stderr, "FILE\n\n");
   fprintf(stderr, "-v\t\tEnable verbose mode\n");
+  fprintf(stderr, "-V\t\tShow version\n");
   fprintf(stderr, "-h\t\tShow this help\n");
+  fprintf(stderr, "\n");
   fprintf(stderr, "-d\t\tEnable dithering\n");
   fprintf(stderr, "\n");
   fprintf(stderr, "-O FILE\t\tOutput file. Default: - (stdout)\n");
   fprintf(stderr, "-W WIDTH\tOutput width (in characters)\n");
   fprintf(stderr, "-H HEIGHT\tOutput height (in characters)\n");
+  fprintf(stderr, "\n");
   fprintf(stderr, "-M MODE\t\tOutput mode\n");
   fprintf(stderr, "-S STYLE\tStyle (palette)\n");
   fprintf(stderr, "-F FORMAT\tOutput format\n");
@@ -94,6 +98,18 @@ void usage(int argc, char **argv)
   __print_options(__style_options);
   fprintf(stderr, "Options for FORMAT:\n");
   __print_options(__format_options);
+}
+
+void version(int argc, char **argv)
+{
+  (void)argc; (void)argv;
+  fprintf(stderr, "yaitaa "VERSION"\n");
+  fprintf(stderr, "Build time: "__DATE__" "__TIME__"\n");
+  fprintf(stderr, "Copyright (C) 2022  hatkidchan\n");
+  fprintf(stderr, "This program comes with ABSOLUTELY NO WARRANTY;\n");
+  fprintf(stderr, "This is free software, and you are welcome to redistribute");
+  fprintf(stderr, " it\nunder certain conditions. ");
+  fprintf(stderr, "See LICENSE file for details\n");
 }
 
 int parse_args(int argc, char **argv, asc_args_t *args)
@@ -110,7 +126,7 @@ int parse_args(int argc, char **argv, asc_args_t *args)
   args->verbose = false;
   args->charset = " .'-*+$@";
   int c;
-  while ((c = getopt(argc, argv, "vhdW:H:M:S:F:P:O:")) != -1)
+  while ((c = getopt(argc, argv, "vhdVW:H:M:S:F:P:O:")) != -1)
   {
     switch (c)
     {
@@ -119,6 +135,10 @@ int parse_args(int argc, char **argv, asc_args_t *args)
         break;
       case 'h':
         usage(argc, argv);
+        return 1;
+        break;
+      case 'V':
+        version(argc, argv);
         return 1;
         break;
       case 'd':

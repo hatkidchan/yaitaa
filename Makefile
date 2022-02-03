@@ -4,17 +4,18 @@ INCLUDES := -Isrc
 OBJECTS := obj/stb_image.o obj/stb_image_resize.o \
 					 obj/colors.o obj/args.o obj/image.o obj/commons.o \
 					 obj/mod_blocks.o obj/mod_braille.o
+VERSION := "v-git-$(shell git rev-parse --short HEAD)"
 
-all: lib asciify
+all: lib yaitaa
 
 lib: $(OBJECTS)
 
 clean:
-	$(RM) obj/*
+	$(RM) yaitaa obj/*
 
-asciify: lib
-	$(CC) $(CFLAGS) src/main.c $(INCLUDES) $(OBJECTS) $(CLIBS) -o ./asciify
+yaitaa: lib
+	$(CC) $(CFLAGS) src/main.c $(INCLUDES) $(OBJECTS) $(CLIBS) -o ./yaitaa
 
 obj/%.o: src/%.c
-	$(CC) $(CFLAGS) $^ $(INCLUDES) -c -o $@
+	$(CC) $(CFLAGS) $^ $(INCLUDES) -DVERSION="\"$(VERSION)\"" -c -o $@
 
