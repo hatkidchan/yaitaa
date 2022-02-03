@@ -2,7 +2,7 @@ CFLAGS := -Wall -Wextra -Werror -pedantic -std=c99 -ggdb
 CLIBS := -lm
 INCLUDES := -Isrc
 OBJECTS := obj/stb_image.o obj/stb_image_resize.o \
-					 obj/colors.o obj/args.o obj/image.o \
+					 obj/colors.o obj/args.o obj/image.o obj/commons.o \
 					 obj/mod_blocks.o
 
 all: lib asciify

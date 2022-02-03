@@ -2,16 +2,10 @@
 #include "mod_blocks.h"
 #include "image.h"
 #include "colors.h"
+#include "commons.h"
 
 const char *BLOCKS[4] = { " ", "\xe2\x96\x80", "\xe2\x96\x84", "\xe2\x96\x88" };
 const char *BLOCKS_ESC[4] = { " ", "\\u2580", "\\u2584", "\\u2588" };
-
-
-rgba8 __to_256(rgba8 c, void *p)
-{
-  (void)p;
-  return pal256_to_rgb(c_palette_ansi_vga, closest_256(c_palette_ansi_vga, c));
-}
 
 
 void mod_blocks_prepare(asc_state_t *state)
@@ -21,49 +15,8 @@ void mod_blocks_prepare(asc_state_t *state)
       state->source_image->width, state->source_image->height,
       state->args.width, state->args.height * 2, &w, &h);
   h = (h / 2) * 2;
-  if (state->args.verbose)
-  {
-    fprintf(stderr, "src: %dx%d\n",
-        state->source_image->width,
-        state->source_image->height);
-    fprintf(stderr, "tgt: %dx%d\n", state->args.width, state->args.height * 2);
-    fprintf(stderr, "dst: %dx%d\n", w, h);
-  }
   state->image = image_resize(state->source_image, w, h);
-  // TODO: dither
-  if (state->args.dither)
-  {
-    image_t *res = NULL;
-    switch (state->args.out_style)
-    {
-      case ASC_STL_BLACKWHITE:
-        res = image_dither(state->image, c_palette_bw);
-        break;
-      case ASC_STL_ANSI_VGA:
-        res = image_dither(state->image, c_palette_ansi_vga);
-        break;
-      case ASC_STL_ANSI_XTERM:
-        res = image_dither(state->image, c_palette_ansi_xterm);
-        break;
-      case ASC_STL_ANSI_DISCORD:
-        res = image_dither(state->image, c_palette_ansi_discord);
-        break;
-      case ASC_STL_256COLOR:
-        res = image_dither_fn(state->image, __to_256, NULL);
-        break;
-      case ASC_STL_PALETTE:
-        res = image_dither(state->image, *state->palette);
-        break;
-      case ASC_STL_TRUECOLOR:
-      case ASC_STL_ENDL:
-        break;
-    }
-    if (res != NULL)
-    {
-      image_unload(state->image);
-      state->image = res;
-    }
-  }
+  m_prepare_dither(state);
 }
 
 void __start_output(asc_state_t state)
@@ -254,8 +207,8 @@ void __put_pixel(asc_state_t state, rgba8 top, rgba8 bot, bool final)
       break;
     case ASC_STL_256COLOR:
       {
-        int index_top = closest_256(c_palette_ansi_vga, top),
-            index_bot = closest_256(c_palette_ansi_vga, bot);
+        int index_top = closest_color(c_palette_256, top),
+            index_bot = closest_color(c_palette_256, bot);
         __putc_256(fp, fmt, final, index_top, index_bot, c_palette_ansi_vga);
       }
       break;

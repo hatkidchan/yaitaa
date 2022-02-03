@@ -12,7 +12,6 @@ typedef struct {
 
 typedef rgba8 (*dither_quantizer_t)(rgba8 clr, void *param);
 
-
 image_t *image_load(FILE *file);
 image_t *image_resize(image_t *img, int width, int height);
 image_t *image_dither(image_t *img, palette_t palette);

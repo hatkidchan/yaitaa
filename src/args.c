@@ -1,4 +1,5 @@
 #include "args.h"
+#include "colors.h"
 #include <getopt.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -241,6 +242,9 @@ int prepare_state(int argc, char **argv, asc_args_t args, asc_state_t *state)
     }
     fclose(fp);
   }
+  
+  if (args.out_style == ASC_STL_256COLOR)
+    make_pal256(&c_palette_256, c_palette_ansi_vga);
   
   state->out_file = stdout;
   if (strcmp(args.output_filename, "-"))

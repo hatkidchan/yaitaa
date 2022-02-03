@@ -11,6 +11,10 @@ palette_t c_palette_bw = {
   }
 };
 
+palette_t c_palette_256 = {
+  .n_colors = 0
+};
+
 palette_t c_palette_ansi_discord = {
   .n_colors = 8,
   .palette = {
@@ -89,30 +93,11 @@ int closest_color(palette_t pal, rgba8 color)
   return nearest;
 }
 
-int closest_256(palette_t pal, rgba8 color)
-{
-  (void)pal;
-  if (color.r == color.g && color.g == color.b)
-  {
-    if (color.r < 8) return 16;
-    if (color.r > 248) return 231;
-    return 232 + (int)ceil((color.r - 8.0) / 247.0 * 24.0);
-  }
-  int oc = 16;
-  oc += 36 * (int)ceil(color.r / 255.0 * 5.0);
-  oc += 6  * (int)ceil(color.g / 255.0 * 5.0);
-  oc +=      (int)ceil(color.b / 255.0 * 5.0);
-  return oc;
-}
-
 rgba8 pal256_to_rgb(palette_t pal, int ndx)
 {
+  (void)pal;
   rgba8 out = { 0, 0, 0, 255 };
-  if (ndx < 16)
-  {
-    return pal.palette[ndx];
-  }
-  else if (ndx >= 232)
+  if (ndx >= 232)
   {
     int l = (ndx - 232) * 255 / 24;
     out.r = out.g = out.b = l;
@@ -127,6 +112,17 @@ rgba8 pal256_to_rgb(palette_t pal, int ndx)
     out.r = (ndx % 6) * 42;
   }
   return out;      
+}
+
+void make_pal256(palette_t *dst, palette_t ansi)
+{
+  if (dst->n_colors == 256) return;
+  dst->n_colors = 256;
+  for (int i = 0; i < 256; i++)
+  {
+    rgba8 res = pal256_to_rgb(ansi, i);
+    memcpy(&dst->palette[i], &res, sizeof(rgba8));
+  }
 }
 
 float calc_brightness(rgba8 c)
