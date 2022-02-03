@@ -19,7 +19,7 @@ void mod_blocks_prepare(asc_state_t *state)
   m_prepare_dither(state);
 }
 
-void __start_output(asc_state_t state)
+void __blk_start_output(asc_state_t state)
 {
   switch (state.args.out_format)
   {
@@ -37,7 +37,7 @@ void __start_output(asc_state_t state)
   }
 }
 
-void __end_output(asc_state_t state)
+void __blk_end_output(asc_state_t state)
 {
   switch (state.args.out_format)
   {
@@ -52,7 +52,7 @@ void __end_output(asc_state_t state)
   }
 }
 
-void __start_line(FILE *fp, asc_format_t fmt, bool final)
+void __blk_start_line(FILE *fp, asc_format_t fmt, bool final)
 {
   (void)final;
   switch (fmt)
@@ -67,7 +67,7 @@ void __start_line(FILE *fp, asc_format_t fmt, bool final)
   }
 }
 
-void __end_line(FILE *fp, asc_format_t fmt, asc_style_t stl, bool final)
+void __blk_end_line(FILE *fp, asc_format_t fmt, asc_style_t stl, bool final)
 {
   switch (fmt)
   {
@@ -84,7 +84,7 @@ void __end_line(FILE *fp, asc_format_t fmt, asc_style_t stl, bool final)
   }
 }
 
-void __putc_bw(int ndx, FILE *fp, asc_format_t fmt, bool final)
+void __blk_putc_bw(int ndx, FILE *fp, asc_format_t fmt, bool final)
 {
   switch (fmt)
   {
@@ -100,7 +100,7 @@ void __putc_bw(int ndx, FILE *fp, asc_format_t fmt, bool final)
   }
 }
 
-void __putc_ansi(FILE *fp, asc_format_t fmt, bool final, int ct, int cb, palette_t pal)
+void __blk_putc_ansi(FILE *fp, asc_format_t fmt, bool final, int ct, int cb, palette_t pal)
 {
   rgba8 top_rgb = pal.palette[ct], bot_rgb = pal.palette[cb];
   int top_int = top_rgb.r << 16 | top_rgb.g << 8 | top_rgb.b;
@@ -127,7 +127,7 @@ void __putc_ansi(FILE *fp, asc_format_t fmt, bool final, int ct, int cb, palette
   }
 }
 
-void __putc_256(FILE *fp, asc_format_t fmt, bool final, int ct, int cb, palette_t pal)
+void __blk_putc_256(FILE *fp, asc_format_t fmt, bool final, int ct, int cb, palette_t pal)
 {
   rgba8 top_rgb = pal256_to_rgb(pal, ct), bot_rgb = pal256_to_rgb(pal, cb);
   int top_int = top_rgb.r << 16 | top_rgb.g << 8 | top_rgb.b;
@@ -151,7 +151,7 @@ void __putc_256(FILE *fp, asc_format_t fmt, bool final, int ct, int cb, palette_
   }
 }
 
-void __putc_truecolor(FILE *fp, asc_format_t fmt, bool final, rgba8 top, rgba8 bot)
+void __blk_putc_truecolor(FILE *fp, asc_format_t fmt, bool final, rgba8 top, rgba8 bot)
 {
   int top_int = top.r << 16 | top.g << 8 | top.b;
   int bot_int = bot.r << 16 | bot.g << 8 | bot.b;
@@ -173,7 +173,7 @@ void __putc_truecolor(FILE *fp, asc_format_t fmt, bool final, rgba8 top, rgba8 b
   }
 }
 
-void __put_pixel(asc_state_t state, rgba8 top, rgba8 bot, bool final)
+void __blk_put_pixel(asc_state_t state, rgba8 top, rgba8 bot, bool final)
 {
   asc_format_t fmt = state.args.out_format;
   FILE *fp = state.out_file;
@@ -183,10 +183,10 @@ void __put_pixel(asc_state_t state, rgba8 top, rgba8 bot, bool final)
       {
         bool bri_top = calc_brightness(top) > 0.5;
         bool bri_bot = calc_brightness(bot) > 0.5;
-        if ( bri_top &&  bri_bot) __putc_bw(3, fp, fmt, final);
-        if (!bri_top &&  bri_bot) __putc_bw(2, fp, fmt, final);
-        if ( bri_top && !bri_bot) __putc_bw(1, fp, fmt, final);
-        if (!bri_top && !bri_bot) __putc_bw(0, fp, fmt, final);
+        if ( bri_top &&  bri_bot) __blk_putc_bw(3, fp, fmt, final);
+        if (!bri_top &&  bri_bot) __blk_putc_bw(2, fp, fmt, final);
+        if ( bri_top && !bri_bot) __blk_putc_bw(1, fp, fmt, final);
+        if (!bri_top && !bri_bot) __blk_putc_bw(0, fp, fmt, final);
       }
       break;
     case ASC_STL_ANSI_VGA:
@@ -194,33 +194,34 @@ void __put_pixel(asc_state_t state, rgba8 top, rgba8 bot, bool final)
     case ASC_STL_ANSI_DISCORD:
       {
         palette_t pal;
-        if(state.args.out_style == ASC_STL_ANSI_VGA)
-          pal = c_palette_ansi_vga;
-        if(state.args.out_style == ASC_STL_ANSI_XTERM)
-          pal = c_palette_ansi_xterm;
-        if(state.args.out_style == ASC_STL_ANSI_DISCORD)
-          pal = c_palette_ansi_discord;
+        switch (state.args.out_style)
+        {
+          case ASC_STL_ANSI_VGA: pal = c_palette_ansi_vga; break;
+          case ASC_STL_ANSI_XTERM: pal = c_palette_ansi_xterm; break;
+          case ASC_STL_ANSI_DISCORD: pal = c_palette_ansi_discord; break;
+          default: break;
+        }
         int index_top = closest_color(pal, top),
             index_bot = closest_color(pal, bot);
-        __putc_ansi(fp, fmt, final, index_top, index_bot, pal);
+        __blk_putc_ansi(fp, fmt, final, index_top, index_bot, pal);
       }
       break;
     case ASC_STL_256COLOR:
       {
         int index_top = closest_color(c_palette_256, top),
             index_bot = closest_color(c_palette_256, bot);
-        __putc_256(fp, fmt, final, index_top, index_bot, c_palette_ansi_vga);
+        __blk_putc_256(fp, fmt, final, index_top, index_bot, c_palette_ansi_vga);
       }
       break;
     case ASC_STL_TRUECOLOR:
-      __putc_truecolor(fp, fmt, final, top, bot);
+      __blk_putc_truecolor(fp, fmt, final, top, bot);
       break;
     case ASC_STL_PALETTE:
       {
         palette_t *pal = state.palette;
         rgba8 pal_top = pal->palette[closest_color(*pal, top)];
         rgba8 pal_bot = pal->palette[closest_color(*pal, bot)];
-        __putc_truecolor(fp, fmt, final, pal_top, pal_bot);
+        __blk_putc_truecolor(fp, fmt, final, pal_top, pal_bot);
       }
     case ASC_STL_ENDL:
       break;
@@ -230,18 +231,18 @@ void __put_pixel(asc_state_t state, rgba8 top, rgba8 bot, bool final)
 void mod_blocks_main(asc_state_t state)
 {
   image_t *img = state.image;
-  __start_output(state);
+  __blk_start_output(state);
   for (int y = 0; y < img->height; y += 2)
   {
     bool final = y >= (img->height - 2);
-    __start_line(state.out_file, state.args.out_format, final);
+    __blk_start_line(state.out_file, state.args.out_format, final);
     for (int x = 0; x < img->width; x++)
     {
       rgba8 top = img->pixels[x + y * img->width];
       rgba8 bot = img->pixels[x + (y + 1) * img->width];
-      __put_pixel(state, top, bot, x >= (img->width - 1));
+      __blk_put_pixel(state, top, bot, x >= (img->width - 1));
     }
-    __end_line(state.out_file, state.args.out_format, state.args.out_style, final);
+    __blk_end_line(state.out_file, state.args.out_format, state.args.out_style, final);
   }
-  __end_output(state);
+  __blk_end_output(state);
 }

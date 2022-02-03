@@ -73,6 +73,14 @@ palette_t c_palette_ansi_xterm = {
   }
 };
 
+int color_difference(rgba8 a, rgba8 b)
+{
+  int16_t dr = (int16_t)a.r - (int16_t)b.r;
+  int16_t dg = (int16_t)a.g - (int16_t)b.g;
+  int16_t db = (int16_t)a.b - (int16_t)b.b;
+  return dr * dr + dg * dg + db * db;
+}
+
 int closest_color(palette_t pal, rgba8 color)
 {
   int nearest = -1;
@@ -80,10 +88,7 @@ int closest_color(palette_t pal, rgba8 color)
   for (int i = 0; i < pal.n_colors; i++)
   {
     rgba8 pal_color = pal.palette[i];
-    int16_t dr = pal_color.r - color.r;
-    int16_t dg = pal_color.g - color.g;
-    int16_t db = pal_color.b - color.b;
-    int32_t distance = dr * dr + dg * dg + db * db;
+    int32_t distance = color_difference(pal_color, color);
     if (distance < min_distance)
     {
       min_distance = distance;

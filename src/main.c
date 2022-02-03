@@ -4,6 +4,7 @@
 #include <string.h>
 #include "args.h"
 #include "mod_blocks.h"
+#include "mod_braille.h"
 
 int main(int argc, char **argv)
 {
@@ -22,6 +23,10 @@ int main(int argc, char **argv)
     case ASC_MOD_BLOCKS:
       mod_blocks_prepare(&state);
       mod_blocks_main(state);
+      break;
+    case ASC_MOD_BRAILLE:
+      mod_braille_prepare(&state);
+      mod_braille_main(state);
       break;
     default:
       break;
