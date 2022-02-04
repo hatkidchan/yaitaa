@@ -3,18 +3,31 @@
 #include "image.h"
 #include "colors.h"
 #include "commons.h"
+#include "fmt_strings.h"
 
 int __bra_best_match_i(rgba8 a, rgba8 b, rgba8 t);
-void __bra_putc_raw(asc_state_t state, uint8_t ch);
-void __bra_putc_esc(asc_state_t state, uint8_t ch);
-void __bra_start_output(asc_state_t state);
-void __bra_start_line(asc_state_t state, bool final);
-void __bra_put_pixel(asc_state_t sta, rgba8 min, rgba8 max, uint8_t ch, bool final);
-void __bra_putc_ansi(asc_state_t state, int i_min, int i_max, uint8_t ch, palette_t pal, bool final);
-void __bra_putc_256(asc_state_t state, int i_min, int i_max, uint8_t ch, bool final);
-void __bra_putc_true(asc_state_t state, rgba8 min, rgba8 max, uint8_t ch, bool final);
-void __bra_end_line(asc_state_t state, bool final);
-void __bra_end_output(asc_state_t state);
+void __bra_putc_raw(asc_state_t s, uint8_t ch);
+void __bra_putc_esc(asc_state_t s, uint8_t ch);
+void __bra_start_output(asc_state_t s);
+void __bra_start_line(asc_state_t s, bool final);
+void __bra_put_pixel(asc_state_t s, rgba8 bg, rgba8 fg, uint8_t ch, bool final);
+void __bra_putc_ansi(asc_state_t s, int bg, int fg, uint8_t ch, palette_t pal, bool final);
+void __bra_putc_256(asc_state_t s, int bg, int fg, uint8_t ch, bool final);
+void __bra_putc_true(asc_state_t s, rgba8 bg, rgba8 fg, uint8_t ch, bool final);
+void __bra_end_line(asc_state_t s, bool final);
+void __bra_end_output(asc_state_t s);
+
+void __bra_update2x4(image_t *img, rgba8 block[8], int x, int y)
+{
+  block[0] = img->pixels[(x + 0) + (y + 0) * img->width];
+  block[3] = img->pixels[(x + 1) + (y + 0) * img->width];
+  block[1] = img->pixels[(x + 0) + (y + 1) * img->width];
+  block[4] = img->pixels[(x + 1) + (y + 1) * img->width];
+  block[2] = img->pixels[(x + 0) + (y + 2) * img->width];
+  block[5] = img->pixels[(x + 1) + (y + 2) * img->width];
+  block[6] = img->pixels[(x + 0) + (y + 3) * img->width];
+  block[7] = img->pixels[(x + 1) + (y + 3) * img->width];
+}
 
 
 void mod_braille_prepare(asc_state_t *state)
@@ -25,7 +38,8 @@ void mod_braille_prepare(asc_state_t *state)
       state->args.width * 2, state->args.height * 4, &w, &h);
   w = (w / 2) * 2; h = (h / 4) * 4;
   state->image = image_resize(state->source_image, w, h);
-  m_prepare_dither(state);
+  if (state->args.dither)
+    m_prepare_dither(state);
 }
 
 void mod_braille_main(asc_state_t state)
@@ -33,7 +47,7 @@ void mod_braille_main(asc_state_t state)
   image_t *img = state.image;
   
   uint8_t braille_char = 0x00;
-  rgba8 pix2x4[8];
+  rgba8 block[8];
   
   rgba8 color_max, color_min;
   int dist_max, dist_min, dist_min_d = 0xffffff, dist;
@@ -45,37 +59,30 @@ void mod_braille_main(asc_state_t state)
     __bra_start_line(state, final);
     for (int x = 0; x < img->width; x += 2)
     {
-      pix2x4[0] = img->pixels[(x + 0) + (y + 0) * img->width];
-      pix2x4[3] = img->pixels[(x + 1) + (y + 0) * img->width];
-      pix2x4[1] = img->pixels[(x + 0) + (y + 1) * img->width];
-      pix2x4[4] = img->pixels[(x + 1) + (y + 1) * img->width];
-      pix2x4[2] = img->pixels[(x + 0) + (y + 2) * img->width];
-      pix2x4[5] = img->pixels[(x + 1) + (y + 2) * img->width];
-      pix2x4[6] = img->pixels[(x + 0) + (y + 3) * img->width];
-      pix2x4[7] = img->pixels[(x + 1) + (y + 3) * img->width];
-      color_max = color_min = pix2x4[0];
+      __bra_update2x4(img, block, x, y);
+      color_max = color_min = block[0];
 
       dist_max = 0;
       dist_min = dist_min_d;
       for (int i = 0; i < 8; i++)
       {
-        dist = color_difference(pix2x4[i], PURE_BLACK);
+        dist = color_difference(block[i], PURE_BLACK);
         if (dist < dist_min)
         {
           dist_min = dist;
-          color_min = pix2x4[i];
+          color_min = block[i];
         }
         if (dist > dist_max)
         {
           dist_max = dist;
-          color_max = pix2x4[i];
+          color_max = block[i];
         }
       }
       
       braille_char = 0x00;
       for (int i = 0; i < 8; i++)
       {
-        if (__bra_best_match_i(color_min, color_max, pix2x4[i]) != 0)
+        if (__bra_best_match_i(color_min, color_max, block[i]) != 0)
         {
           braille_char |= (1 << i);
         }
@@ -107,72 +114,45 @@ void __bra_putc_esc(asc_state_t state, uint8_t ch)
 
 void __bra_start_output(asc_state_t state)
 {
-  switch (state.args.out_format)
-  {
-    case ASC_FMT_JSON:
-      fprintf(state.out_file, "{\n");
-      fprintf(state.out_file, "  \"width\": %d,\n", state.image->width / 2);
-      fprintf(state.out_file, "  \"height\": %d,\n", state.image->height / 4);
-      fprintf(state.out_file, "  \"data\": [");
-      break;
-    case ASC_FMT_HTML:
-      fprintf(state.out_file, "<table style=\"border-collapse: collapse;\">\n");
-      break;
-    default:
-      break;
-  }
+  int w = state.image->width / 2, h = state.image->height / 4;
+  if (state.args.out_format == ASC_FMT_JSON)
+    fprintf(state.out_file, S_JSON_HEAD, w, h);
+  else if (state.args.out_format == ASC_FMT_HTML)
+    fprintf(state.out_file, S_HTML_HEAD);
 }
 
 void __bra_start_line(asc_state_t state, bool final)
 {
   (void)final;
-  switch (state.args.out_format)
-  {
-    case ASC_FMT_JSON:
-      fprintf(state.out_file, "    [\n");
-      break;
-    case ASC_FMT_HTML:
-      fprintf(state.out_file, "<tr>");
-    default:
-      break;
-  }
+  if (state.args.out_format == ASC_FMT_JSON)
+    fprintf(state.out_file, S_JSON_LSTA);
+  else if (state.args.out_format == ASC_FMT_HTML)
+    fprintf(state.out_file, S_HTML_LSTA);
 }
 
-void __bra_put_pixel(asc_state_t state, rgba8 min, rgba8 max, uint8_t ch, bool final)
+void __bra_put_pixel(asc_state_t s, rgba8 min, rgba8 max, uint8_t ch, bool fin)
 {
-  switch (state.args.out_style)
+  switch (s.args.out_style)
   {
     case ASC_STL_ANSI_VGA:
     case ASC_STL_ANSI_XTERM:
     case ASC_STL_ANSI_DISCORD:
       {
-        palette_t pal;
-        switch (state.args.out_style)
-        {
-          case ASC_STL_ANSI_VGA: pal = c_palette_ansi_vga; break;
-          case ASC_STL_ANSI_XTERM: pal = c_palette_ansi_xterm; break;
-          case ASC_STL_ANSI_DISCORD: pal = c_palette_ansi_discord; break;
-          default: c_fatal(9, "[UNREACH] Palette is unset"); return;
-        }
-        __bra_putc_ansi(state,
-            closest_color(pal, min), closest_color(pal, max), ch, pal, final);
+        palette_t pal = *get_palette_by_id(s.args.out_style);
+        __bra_putc_ansi(s,
+            closest_color(pal, min), closest_color(pal, max), ch, pal, fin);
       }
       break;
     case ASC_STL_256COLOR:
-      {
-        __bra_putc_256(state, closest_color(c_palette_256, min),
-            closest_color(c_palette_256, max), ch, final);
-      }
+      __bra_putc_256(s, closest_color(c_palette_256, min),
+          closest_color(c_palette_256, max), ch, fin);
       break;
     case ASC_STL_TRUECOLOR:
-      __bra_putc_true(state, min, max, ch, final);
+      __bra_putc_true(s, min, max, ch, fin);
       break;
     case ASC_STL_PALETTE:
-      {
-        palette_t *pal = state.palette;
-        __bra_putc_true(state, pal->palette[closest_color(*pal, min)],
-            pal->palette[closest_color(*pal, max)], ch, final);
-      }
+      __bra_putc_true(s, clamp_to_pal(*s.palette, min),
+          clamp_to_pal(*s.palette, max), ch, fin);
       break;
     case ASC_STL_BLACKWHITE:
     case ASC_STL_ENDL:
@@ -180,115 +160,93 @@ void __bra_put_pixel(asc_state_t state, rgba8 min, rgba8 max, uint8_t ch, bool f
   }
 }
 
-void __bra_putc_ansi(asc_state_t state, int i_min, int i_max, uint8_t ch, palette_t pal, bool final)
+void __bra_putc_ansi
+(asc_state_t s, int bgi, int fgi, uint8_t ch, palette_t pal, bool fin)
 {
-  rgba8 min_rgb = pal.palette[i_min], max_rgb = pal.palette[i_max];
-  int min_int = min_rgb.r << 16 | min_rgb.g << 8 | min_rgb.b;
-  int max_int = max_rgb.r << 16 | max_rgb.g << 8 | max_rgb.b;
-  FILE *fp = state.out_file;
-  switch (state.args.out_format)
+  rgba8 bg = pal.palette[bgi], fg = pal.palette[fgi];
+  FILE *fp = s.out_file;
+  switch (s.args.out_format)
   {
     case ASC_FMT_JSON:
-      fprintf(fp, "{ \"char\": \"\\u28%d\", \"fg\": %d, \"bg\": %d }",
-          ch, max_int, min_int);
-      if (!final) fprintf(fp, ", ");
+      fprintf(fp, S_JSON_PRGB, ch, RGBN(fg), RGBN(bg));
+      if (!fin) fprintf(fp, ", ");
       break;
     case ASC_FMT_HTML:
-      fprintf(fp, "<td style=\"color: rgb(%d, %d, %d); background: rgb(%d, %d, %d);\">&#%d;</td>",
-          max_rgb.r, max_rgb.g, max_rgb.b, min_rgb.r, min_rgb.g, min_rgb.b,
-          0x2800 | ch);
+      fprintf(fp, S_HTML_PCBR, fg.r, fg.g, fg.b,
+          bg.r, bg.g, bg.b, 0x2800 | ch);
       break;
     case ASC_FMT_ANSI:
-      fprintf(fp, "\033[%d;%dm", i_max + (i_max > 8 ? 82 : 30), i_min + (i_min > 8 ? 82 : 30));
-      __bra_putc_raw(state, ch);
+      fprintf(fp, S_ANSI, fgi + (fgi > 8 ? 82 : 30), bgi + (bgi > 8 ? 82 : 30));
+      __bra_putc_raw(s, ch);
       break;
     case ASC_FMT_ENDL:
       break;
   }
 }
 
-void __bra_putc_256(asc_state_t state, int i_min, int i_max, uint8_t ch, bool final)
+void __bra_putc_256(asc_state_t s, int bgi, int fgi, uint8_t ch, bool final)
 {
-  rgba8 min_rgb = c_palette_256.palette[i_min];
-  rgba8 max_rgb = c_palette_256.palette[i_max];
-  int min_int = min_rgb.r << 16 | min_rgb.g << 8 | min_rgb.b;
-  int max_int = max_rgb.r << 16 | max_rgb.g << 8 | max_rgb.b;
-  FILE *fp = state.out_file;
-  switch (state.args.out_format)
+  rgba8 bg = c_palette_256.palette[bgi];
+  rgba8 fg = c_palette_256.palette[fgi];
+  FILE *fp = s.out_file;
+  switch (s.args.out_format)
   {
     case ASC_FMT_JSON:
-      fprintf(fp, "{ \"char\": \"\\u28%d\", \"fg\": %d, \"bg\": %d }",
-          ch, max_int, min_int);
+      fprintf(fp, S_JSON_PRGB, 0x2800 | ch, RGBN(fg), RGBN(bg));
       if (!final) fprintf(fp, ", ");
       break;
     case ASC_FMT_HTML:
-      fprintf(fp, "<td style=\"color: rgb(%d, %d, %d); background: rgb(%d, %d, %d);\">&#%d;</td>",
-          max_rgb.r, max_rgb.g, max_rgb.b, min_rgb.r, min_rgb.g, min_rgb.b,
-          0x2800 | ch);
+      fprintf(fp, S_HTML_PCBR, fg.r, fg.g, fg.b, bg.r, bg.g, bg.b, 0x2800 | ch);
       break;
     case ASC_FMT_ANSI:
-      fprintf(fp, "\033[38;5;%d;48;5;%dm", i_max, i_min);
-      __bra_putc_raw(state, ch);
+      fprintf(fp, S_ANSI_256, fgi, bgi);
+      __bra_putc_raw(s, ch);
       break;
     case ASC_FMT_ENDL:
       break;
   }
 }
 
-void __bra_putc_true(asc_state_t state, rgba8 min, rgba8 max, uint8_t ch, bool final)
+void __bra_putc_true(asc_state_t s, rgba8 bg, rgba8 fg, uint8_t ch, bool fin)
 {
-  int max_int = max.r << 16 | max.g << 8 | max.b;
-  int min_int = min.r << 16 | min.g << 8 | min.b;
-  FILE *fp = state.out_file;
-  switch (state.args.out_format)
+  int max_int = fg.r << 16 | fg.g << 8 | fg.b;
+  int min_int = bg.r << 16 | bg.g << 8 | bg.b;
+  FILE *fp = s.out_file;
+  if (s.args.out_format == ASC_FMT_JSON)
   {
-    case ASC_FMT_JSON:
-      fprintf(fp, "{ \"char\": \"\\u%d\", \"fg\": %d, \"bg\": %d }",
-          0x2800 | ch, max_int, min_int);
-      if (!final) fprintf(fp, ", ");
-      break;
-    case ASC_FMT_HTML:
-      fprintf(fp, "<td style=\"color: rgb(%d, %d, %d); background: rgb(%d, %d, %d);\">&#%d;</td>",
-          max.r, max.g, max.b, min.r, min.g, min.b, 0x2800 | ch);
-      break;
-    default:
-      fprintf(fp, "\033[38;2;%d;%d;%d;48;2;%d;%d;%dm",
-          max.r, max.g, max.b, min.r, min.g, min.b);
-      __bra_putc_raw(state, ch);
-      break;
+    fprintf(fp, S_JSON_PRGB, 0x2800 | ch, max_int, min_int);
+    if (!fin) fprintf(fp, ", ");
+  }
+  else if (s.args.out_format == ASC_FMT_HTML)
+  {
+    fprintf(fp, S_HTML_PCBR, fg.r, fg.g, fg.b, bg.r, bg.g, bg.b, 0x2800 | ch);
+  }
+  else
+  {
+    fprintf(fp, S_ANSI_RGB, fg.r, fg.g, fg.b, bg.r, bg.g, bg.b);
+    __bra_putc_raw(s, ch);
   }
 }
 
 void __bra_end_line(asc_state_t state, bool final)
 {
-  switch (state.args.out_format)
+  if (state.args.out_format == ASC_FMT_JSON)
+    fprintf(state.out_file, final ? S_JSON_LEND_FINAL : S_JSON_LEND);
+  else if (state.args.out_format == ASC_FMT_HTML)
+    fprintf(state.out_file, S_HTML_LEND);
+  else
   {
-    case ASC_FMT_JSON:
-      fprintf(state.out_file, final ? "    ]\n" : "    ],\n");
-      break;
-    case ASC_FMT_HTML:
-      fprintf(state.out_file, "</tr>\n");
-      break;
-    default:
-      if (state.args.out_style != ASC_STL_BLACKWHITE)
-        fprintf(state.out_file, "\033[0m");
-      fprintf(state.out_file, "\n");
-      break;
+    if (state.args.out_style != ASC_STL_BLACKWHITE)
+      fprintf(state.out_file, "\033[0m");
+    fprintf(state.out_file, "\n");
   }
 }
 
 void __bra_end_output(asc_state_t state)
 {
-  switch (state.args.out_format)
-  {
-    case ASC_FMT_JSON:
-      fprintf(state.out_file, "  ]\n}");
-      break;
-    case ASC_FMT_HTML:
-      fprintf(state.out_file, "</table>\n");
-      break;
-    default:
-      break;
-  }
+  if (state.args.out_format == ASC_FMT_JSON)
+    fprintf(state.out_file, "  ]\n}");
+  else if (state.args.out_format == ASC_FMT_HTML)
+    fprintf(state.out_file, "</table>\n");
 }
 

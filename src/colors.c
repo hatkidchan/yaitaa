@@ -119,6 +119,11 @@ rgba8 pal256_to_rgb(palette_t pal, int ndx)
   return out;      
 }
 
+rgba8 clamp_to_pal(palette_t pal, rgba8 color)
+{
+  return pal.palette[closest_color(pal, color)];
+}
+
 void make_pal256(palette_t *dst, palette_t ansi)
 {
   if (dst->n_colors == 256) return;
@@ -175,12 +180,7 @@ bool load_palette(palette_t *pal, FILE *fp)
   if (fread(head, sizeof(char), 12, fp) < 12) return false;
   if (fseek(fp, 0, SEEK_SET) != 0) return false;
   if (!strncmp(head, "GIMP Palette", 12))
-  {
     return load_palette_gpl(pal, fp);
-  }
-  else
-  {
-    return load_palette_raw(pal, fp);
-  }
+  return load_palette_raw(pal, fp);
 }
 

@@ -1,4 +1,4 @@
-# YAITAA - Yet Another Image To A(NSI) Art (converter).
+# YAITAA - Yet Another Image To A(NSI) Art (converter)
 
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/9fdbd9f8bc7843df9a6715b72b4da2fd)](https://www.codacy.com/gh/hatkidchan/yaitaa/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=hatkidchan/yaitaa&amp;utm_campaign=Badge_Grade)
 
@@ -16,7 +16,6 @@ recap:
 4. Literally dublication
 5. Separate binaries for each mode
 6. Git submodules. Yay.
-
 
 ## Build instructions
 ### 1. Make sure that you have C compiler and make

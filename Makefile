@@ -1,4 +1,4 @@
-CFLAGS := -Wall -Wextra -Werror -pedantic -std=c99
+CFLAGS := -Wall -Wextra -Werror -pedantic -std=c99 -Wno-attributes
 CLIBS := -lm
 INCLUDES := -Isrc
 OBJECTS := obj/stb_image.o obj/stb_image_resize.o \

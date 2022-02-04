@@ -3,6 +3,7 @@
 #include "image.h"
 #include "colors.h"
 #include "commons.h"
+#include "fmt_strings.h"
 
 const char *BLOCKS[4] = { " ", "\xe2\x96\x80", "\xe2\x96\x84", "\xe2\x96\x88" };
 const char *BLOCKS_ESC[4] = { " ", "\\u2580", "\\u2584", "\\u2588" };
@@ -16,7 +17,8 @@ void mod_blocks_prepare(asc_state_t *state)
       state->args.width, state->args.height * 2, &w, &h);
   h = (h / 2) * 2;
   state->image = image_resize(state->source_image, w, h);
-  m_prepare_dither(state);
+  if (state->args.dither)
+    m_prepare_dither(state);
 }
 
 void __blk_start_output(asc_state_t state)
@@ -55,16 +57,10 @@ void __blk_end_output(asc_state_t state)
 void __blk_start_line(FILE *fp, asc_format_t fmt, bool final)
 {
   (void)final;
-  switch (fmt)
-  {
-    case ASC_FMT_JSON:
-      fprintf(fp, "    [\n");
-      break;
-    case ASC_FMT_HTML:
-      fprintf(fp, "<tr>");
-    default:
-      break;
-  }
+  if (fmt == ASC_FMT_JSON)
+    fprintf(fp, S_JSON_LSTA);
+  else if (fmt == ASC_FMT_HTML)
+    fprintf(fp, S_HTML_LSTA);
 }
 
 void __blk_end_line(FILE *fp, asc_format_t fmt, asc_style_t stl, bool final)
@@ -108,20 +104,15 @@ void __blk_putc_ansi(FILE *fp, asc_format_t fmt, bool final, int ct, int cb, pal
   switch (fmt)
   {
     case ASC_FMT_JSON:
-      fprintf(fp, "{ \"char\": \"%s\", \"fg\": %d, \"bg\": %d }",
-          BLOCKS_ESC[1], top_int, bot_int);
+      fprintf(fp, S_JSON_PBLK, BLOCKS_ESC[1], top_int, bot_int);
       if (!final) fprintf(fp, ", ");
       break;
     case ASC_FMT_HTML:
-      fprintf(fp, "<td style=\"color: rgb(%d, %d, %d); background: rgb(%d, %d, %d);\">%s</td>",
-          top_rgb.r, top_rgb.g, top_rgb.b,
-          bot_rgb.r, bot_rgb.g, bot_rgb.b,
-          BLOCKS[1]);
+      fprintf(fp, S_HTML_PBLK, top_rgb.r, top_rgb.g, top_rgb.b,
+          bot_rgb.r, bot_rgb.g, bot_rgb.b, BLOCKS[1]);
       break;
     default:
-      fprintf(fp, "\033[%d;%dm%s",
-          ct + (ct >= 8 ? 82 : 30),
-          cb + (cb >= 8 ? 92 : 40),
+      fprintf(fp, S_ANSI_S, ct + (ct >= 8 ? 82 : 30), cb + (cb >= 8 ? 92 : 40),
           BLOCKS[1]);
       break;
   }
@@ -193,17 +184,10 @@ void __blk_put_pixel(asc_state_t state, rgba8 top, rgba8 bot, bool final)
     case ASC_STL_ANSI_XTERM:
     case ASC_STL_ANSI_DISCORD:
       {
-        palette_t pal;
-        switch (state.args.out_style)
-        {
-          case ASC_STL_ANSI_VGA: pal = c_palette_ansi_vga; break;
-          case ASC_STL_ANSI_XTERM: pal = c_palette_ansi_xterm; break;
-          case ASC_STL_ANSI_DISCORD: pal = c_palette_ansi_discord; break;
-          default: c_fatal(9, "[UNREACH] Palette is unset"); return;
-        }
-        int index_top = closest_color(pal, top),
-            index_bot = closest_color(pal, bot);
-        __blk_putc_ansi(fp, fmt, final, index_top, index_bot, pal);
+        palette_t *pal = get_palette_by_id(state.args.out_style);
+        int index_top = closest_color(*pal, top),
+            index_bot = closest_color(*pal, bot);
+        __blk_putc_ansi(fp, fmt, final, index_top, index_bot, *pal);
       }
       break;
     case ASC_STL_256COLOR:
@@ -219,10 +203,10 @@ void __blk_put_pixel(asc_state_t state, rgba8 top, rgba8 bot, bool final)
     case ASC_STL_PALETTE:
       {
         palette_t *pal = state.palette;
-        rgba8 pal_top = pal->palette[closest_color(*pal, top)];
-        rgba8 pal_bot = pal->palette[closest_color(*pal, bot)];
-        __blk_putc_truecolor(fp, fmt, final, pal_top, pal_bot);
+        __blk_putc_truecolor(fp, fmt, final,
+            clamp_to_pal(*pal, top), clamp_to_pal(*pal, bot));
       }
+      break;
     case ASC_STL_ENDL:
       break;
   }

@@ -22,6 +22,7 @@
 #include "args.h"
 #include "mod_blocks.h"
 #include "mod_braille.h"
+#include "commons.h"
 
 int main(int argc, char **argv)
 {
@@ -35,25 +36,11 @@ int main(int argc, char **argv)
   if (res == 1) return 0;
   if (res < 0) return -res;
   
-  switch (args.mode)
-  {
-    case ASC_MOD_BLOCKS:
-      mod_blocks_prepare(&state);
-      mod_blocks_main(state);
-      break;
-    case ASC_MOD_BRAILLE:
-      mod_braille_prepare(&state);
-      mod_braille_main(state);
-      break;
-    case ASC_MOD_GRADIENT:
-      fprintf(stderr, "Error: ASC_MOD_GRADIENT is not implemented yet\n");
-      break;
-    case ASC_MOD_BRUTEFORCE:
-      fprintf(stderr, "Error: ASC_MOD_BRUTEFORCE is not implemented yet\n");
-      break;
-    case ASC_MOD_ENDL:
-      break;
-  }
-
+  asc_handler_t handler = asc_handlers[args.mode];
+  if (handler.prepare == NULL)
+    c_fatal(12, "this mode is not implemented yet");
+  
+  handler.prepare(&state);
+  handler.main(state);
   return 0;
 }

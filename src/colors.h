@@ -22,6 +22,7 @@
 #include <stdbool.h>
 
 #define PURE_BLACK ((rgba8){ 0, 0, 0, 0 })
+#define RGBN(c) (c.r << 16 | c.g << 8 | c.b)
 
 typedef struct {
   uint8_t r, g, b, a;
@@ -41,6 +42,7 @@ extern palette_t c_palette_ansi_xterm;
 int color_difference(rgba8 a, rgba8 b);
 int closest_color(palette_t pal, rgba8 color);
 rgba8 pal256_to_rgb(palette_t pal, int ndx);
+rgba8 clamp_to_pal(palette_t pal, rgba8 color);
 void make_pal256(palette_t *dst, palette_t ansi);
 bool load_palette_gpl(palette_t *pal, FILE *fp);
 bool load_palette_raw(palette_t *pal, FILE *fp);

@@ -23,7 +23,7 @@
 typedef struct {
   int width;
   int height;
-  int errno;
+  int err;
   rgba8 *pixels;
 } image_t;
 

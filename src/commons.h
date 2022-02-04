@@ -20,7 +20,10 @@
 
 #include "args.h"
 
+#define CLAMP(min, val, max) ((val)>(max)?(max):((val)<(min)?(min):(val)))
+
 void c_fatal(int code, const char *reason);
 void m_prepare_dither(asc_state_t *state);
+palette_t *get_palette_by_id(asc_style_t stl);
 
 #endif

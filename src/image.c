@@ -1,3 +1,4 @@
+#include "commons.h"
 #include "image.h"
 #include "stb_image.h"
 #include "stb_image_resize.h"
@@ -29,22 +30,19 @@ image_t *image_resize(image_t *img, int width, int height)
   return res;
 }
 
+__attribute__((annotate("oclint:suppress[high cyclomatic complexity]")))
 void __dither_update_pixel(image_t *img, int x, int y, int err[3], float bias)
 {
   if (x < 0 || x >= img->width || y < 0 || y >= img->height) return;
   int i = x + y * img->width;
   rgba8 pix = img->pixels[i];
   int dst[3] = { pix.r, pix.g, pix.b };
-  dst[0] += (int)(((float)err[0]) * bias);
-  dst[1] += (int)(((float)err[1]) * bias);
-  dst[2] += (int)(((float)err[2]) * bias);
-  img->pixels[i].r = (dst[0] > 255 ? 255 : (dst[0] < 0 ? 0 : dst[0]));
-  img->pixels[i].g = (dst[1] > 255 ? 255 : (dst[1] < 0 ? 0 : dst[1]));
-  img->pixels[i].b = (dst[2] > 255 ? 255 : (dst[2] < 0 ? 0 : dst[2]));
+  img->pixels[i].r = CLAMP(0, dst[0] + (int)((float)err[0] * bias), 255);
+  img->pixels[i].g = CLAMP(0, dst[1] + (int)((float)err[1] * bias), 255);
+  img->pixels[i].b = CLAMP(0, dst[2] + (int)((float)err[2] * bias), 255);
 }
 
 
-// TODO: make it work better sometime in future (for some reason it sucks rn)
 image_t *image_dither_fn(image_t *img, dither_quantizer_t quantize, void *param)
 {
   image_t *res = calloc(1, sizeof(image_t));

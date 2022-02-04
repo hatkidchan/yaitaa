@@ -69,6 +69,19 @@ typedef struct {
   FILE *out_file;
 } asc_state_t;
 
+typedef void (*asc_module_initializer_fn)(asc_state_t *state);
+typedef void (*asc_module_handler_fn)(asc_state_t state);
+
+typedef struct {
+  int id;
+  char *strings[8];
+  char *description;
+  asc_module_initializer_fn prepare;
+  asc_module_handler_fn main;
+} asc_handler_t;
+
+extern const asc_handler_t asc_handlers[ASC_MOD_ENDL + 1];
+
 void usage(int argc, char **argv);
 int parse_args(int argc, char **argv, asc_args_t *args);
 int prepare_state(int argc, char **argv, asc_args_t args, asc_state_t *state);

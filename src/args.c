@@ -1,73 +1,85 @@
-#include "version.h"
-#include "args.h"
-#include "colors.h"
 #include <getopt.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include "version.h"
+#include "args.h"
+#include "colors.h"
+#include "commons.h"
+#include "mod_blocks.h"
+#include "mod_braille.h"
 
 typedef struct {
   int value;
   char *strings[8];
   char *description;
+  void *unused[2];
 } __option_t;
 
 int __find_value(const __option_t *options, char *option);
 void __print_options(const __option_t *options);
 
-const __option_t __mode_options[ASC_MOD_ENDL + 1] = {
+const asc_handler_t asc_handlers[ASC_MOD_ENDL + 1] = {
   { ASC_MOD_BLOCKS,
     { "b", "blk", "blocks", NULL },
-    "Box-drawing characters (\342\226\204) (default)" },
+    "Box-drawing characters (\342\226\204) (default)",
+    mod_blocks_prepare, mod_blocks_main },
   { ASC_MOD_BRAILLE,
     { "r", "brl", "braille", NULL },
-    "Braille characters (literally stolen from MineOS)" },
+    "Braille characters (literally stolen from MineOS)",
+    mod_braille_prepare, mod_braille_main },
   { ASC_MOD_GRADIENT,
     { "g", "grd", "gradient", NULL },
-    "Gradient of characters. No matching at all" },
+    "Gradient of characters. No matching at all",
+    NULL, NULL },
   { ASC_MOD_BRUTEFORCE,
     { "f", "guess", "bruteforce", NULL },
-    "Looking for best possible character" },
-  { -1, { NULL }, NULL }
+    "Looking for best possible character",
+    NULL, NULL },
+  { -1, { NULL }, NULL, NULL, NULL }
 };
 
 const __option_t __style_options[ASC_STL_ENDL + 1] = {
   { ASC_STL_BLACKWHITE,
     { "1", "bw", "black-white", "1bit", NULL },
-    "1-bit black/white" },
+    "1-bit black/white", { NULL, NULL } },
   { ASC_STL_ANSI_VGA,
-    { "vga", "ansi-vga", NULL },
-    "VGA palette" },
+    { "vga", "ansi-vga" },
+    "VGA palette", { NULL, NULL } },
   { ASC_STL_ANSI_XTERM,
     { "xterm", "ansi-xterm", NULL },
-    "xTerm palette. A bit more rough, compared to VGA" },
+    "xTerm palette. A bit more rough, compared to VGA", { NULL, NULL } },
   { ASC_STL_ANSI_DISCORD,
     { "discord", "ansi-discord", NULL },
-    "Palette in Discord ANSI highlight" },
+    "Palette in Discord ANSI highlight", { NULL, NULL } },
   { ASC_STL_256COLOR,
     { "256", "pal256", "8bit", NULL },
-    "256-color palette (default)" },
+    "256-color palette (default)", { NULL, NULL } },
   { ASC_STL_TRUECOLOR,
     { "true", "truecolor", "24bit", NULL },
-    "24-bit RGB (TrueColor)" },
+    "24-bit RGB (TrueColor)", { NULL, NULL } },
   { ASC_STL_PALETTE,
     { "pal", "palette", "custom", NULL },
-    "Custom palette (specified via -P). Either GIMP palette file or N*3 RGB pixels" },
-  { -1, { NULL }, NULL }
+    "Custom palette (specified via -P). "\
+      "Either GIMP palette file or N*3 RGB pixels", { NULL, NULL } },
+  { -1, { NULL }, NULL, { NULL, NULL } }
 };
 
 const __option_t __format_options[ASC_FMT_ENDL + 1] = {
   { ASC_FMT_ANSI,
     { "ansi", "raw", NULL },
-    "Output, suitable for terminal (default)" },
+    "Output, suitable for terminal (default)",
+    { NULL, NULL } },
   { ASC_FMT_HTML,
     { "html", NULL },
-    "Output as HTML table" },
+    "Output as HTML table",
+    { NULL, NULL } },
   { ASC_FMT_JSON,
     { "json", NULL },
-    "Output as JSON 2D array of characters with properties" },
-  { -1, { NULL }, NULL }
+    "Output as JSON 2D array of characters with properties",
+    { NULL, NULL } },
+  { -1, { NULL }, NULL, { NULL, NULL } }
 };
 
 void usage(int argc, char **argv)
@@ -93,7 +105,7 @@ void usage(int argc, char **argv)
   fprintf(stderr, "-P PALETTE\tPath to palette file (when -S pal)\n");
   fprintf(stderr, "\n\n");
   fprintf(stderr, "Options for MODE:\n");
-  __print_options(__mode_options);
+  __print_options((const __option_t*)asc_handlers);
   fprintf(stderr, "Options for STYLE:\n");
   __print_options(__style_options);
   fprintf(stderr, "Options for FORMAT:\n");
@@ -112,6 +124,10 @@ void version(int argc, char **argv)
   fprintf(stderr, "See LICENSE file for details\n");
 }
 
+__attribute__((annotate("oclint:suppress[high cyclomatic complexity]")))
+__attribute__((annotate("oclint:suppress[high npath complexity]")))
+__attribute__((annotate("oclint:suppress[high ncss method]")))
+__attribute__((annotate("oclint:suppress[long method]")))
 int parse_args(int argc, char **argv, asc_args_t *args)
 {
   args->input_filename = NULL;
@@ -136,11 +152,9 @@ int parse_args(int argc, char **argv, asc_args_t *args)
       case 'h':
         usage(argc, argv);
         return 1;
-        break;
       case 'V':
         version(argc, argv);
         return 1;
-        break;
       case 'd':
         args->dither = true;
         break;
@@ -160,7 +174,7 @@ int parse_args(int argc, char **argv, asc_args_t *args)
         break;
       case 'M':
         {
-          int val = __find_value(__mode_options, optarg);
+          int val = __find_value((const __option_t*)asc_handlers, optarg);
           if (val < 0)
           {
             fprintf(stderr, "Error: invalid mode '%s'\n", optarg);
@@ -209,11 +223,14 @@ int parse_args(int argc, char **argv, asc_args_t *args)
           fprintf(stderr, "Error: Unknown parameter -%c\n", optopt);
         }
         return -2;
+      default:
+        fprintf(stderr, "Error: UNREACHABLE: getopt switch gone wrong\n");
+        break;
     }
   }
   if (args->out_style == ASC_STL_PALETTE && args->palette_filename == NULL)
   {
-    fprintf(stderr, "Error: no palette file provided, but palette mode selected\n");
+    fprintf(stderr, "Error: no palette file provided in palette mode\n");
     return -3;
   }
   if (argc <= optind || argc < 2)
@@ -225,11 +242,16 @@ int parse_args(int argc, char **argv, asc_args_t *args)
   return 0;
 }
 
+__attribute__((annotate("oclint:suppress[high cyclomatic complexity]")))
+__attribute__((annotate("oclint:suppress[high npath complexity]")))
+__attribute__((annotate("oclint:suppress[high ncss method]")))
+__attribute__((annotate("oclint:suppress[long method]")))
 int prepare_state(int argc, char **argv, asc_args_t args, asc_state_t *state)
 {
   (void)argc; (void)argv;
   state->args = args;
   
+  // Loading image
   FILE *image_file;
   if ((image_file = fopen(args.input_filename, "rb")) == NULL
       || ferror(image_file) != 0)
@@ -239,33 +261,48 @@ int prepare_state(int argc, char **argv, asc_args_t args, asc_state_t *state)
         args.input_filename, err, strerror(err));
     return -100 - err;
   }
-  
   state->source_image = image_load(image_file);
   fclose(image_file);
   
-  if (args.out_style == ASC_STL_PALETTE)
+  // Palette configuration
+  switch (args.out_style)
   {
-    FILE *fp = fopen(args.palette_filename, "rb");
-    if (fp == NULL)
-    {
-      int err = errno;
-      fprintf(stderr, "Error: failed to open file %s for reading: %d: %s\n",
-          args.palette_filename, err, strerror(err));
-      return -100 - err;
-    }
-    state->palette = calloc(1, sizeof(palette_t));
-    if (!load_palette(state->palette, fp))
-    {
-      fprintf(stderr, "Error: failed to read palette\n");
-      fclose(fp);
-      return -7;
-    }
-    fclose(fp);
+    case ASC_STL_PALETTE:
+      {
+        FILE *fp = fopen(args.palette_filename, "rb");
+        if (fp == NULL)
+        {
+          int err = errno;
+          fprintf(stderr, "Error: failed to open file %s for reading: %d: %s\n",
+              args.palette_filename, err, strerror(err));
+          return -100 - err;
+        }
+        state->palette = calloc(1, sizeof(palette_t));
+        if (!load_palette(state->palette, fp))
+        {
+          fprintf(stderr, "Error: failed to read palette\n");
+          fclose(fp);
+          return -7;
+        }
+        fclose(fp);
+      }  
+      break;
+    case ASC_STL_256COLOR:
+      make_pal256(&c_palette_256, c_palette_ansi_vga);
+      state->palette = &c_palette_256;
+      break;
+    case ASC_STL_ANSI_VGA:
+    case ASC_STL_ANSI_XTERM:
+    case ASC_STL_ANSI_DISCORD:
+    case ASC_STL_BLACKWHITE:
+      state->palette = get_palette_by_id(args.out_style);
+      break;
+    case ASC_STL_TRUECOLOR:
+    case ASC_STL_ENDL:
+      break;
   }
   
-  if (args.out_style == ASC_STL_256COLOR)
-    make_pal256(&c_palette_256, c_palette_ansi_vga);
-  
+  // Output file configuration
   state->out_file = stdout;
   if (strcmp(args.output_filename, "-"))
     state->out_file = fopen(args.output_filename, "wb");
@@ -276,6 +313,7 @@ int prepare_state(int argc, char **argv, asc_args_t args, asc_state_t *state)
             args.output_filename, err, strerror(err));
     return -100 - err;
   }
+
   return 0;
 }
 
