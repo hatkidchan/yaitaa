@@ -11,7 +11,7 @@ void __bra_putc_esc(asc_state_t s, uint8_t ch);
 void __bra_start_output(asc_state_t s);
 void __bra_start_line(asc_state_t s, bool final);
 void __bra_put_pixel(asc_state_t s, rgba8 bg, rgba8 fg, uint8_t ch, bool final);
-void __bra_putc_ansi(asc_state_t s, int bg, int fg, uint8_t ch, palette_t pal, bool final);
+void __bra_putc_ansi(asc_state_t s, int bg, int fg, uint8_t ch, bool final);
 void __bra_putc_256(asc_state_t s, int bg, int fg, uint8_t ch, bool final);
 void __bra_putc_true(asc_state_t s, rgba8 bg, rgba8 fg, uint8_t ch, bool final);
 void __bra_end_line(asc_state_t s, bool final);
@@ -87,7 +87,8 @@ void mod_braille_main(asc_state_t state)
           braille_char |= (1 << i);
         }
       }
-      __bra_put_pixel(state, color_min, color_max, braille_char, final);
+      __bra_put_pixel(state, color_min, color_max,
+          braille_char, x >= (img->width - 2));
     }
     __bra_end_line(state, final);
   }
@@ -140,7 +141,7 @@ void __bra_put_pixel(asc_state_t s, rgba8 min, rgba8 max, uint8_t ch, bool fin)
       {
         palette_t pal = *get_palette_by_id(s.args.out_style);
         __bra_putc_ansi(s,
-            closest_color(pal, min), closest_color(pal, max), ch, pal, fin);
+            closest_color(pal, min), closest_color(pal, max), ch, fin);
       }
       break;
     case ASC_STL_256COLOR:
@@ -160,10 +161,9 @@ void __bra_put_pixel(asc_state_t s, rgba8 min, rgba8 max, uint8_t ch, bool fin)
   }
 }
 
-void __bra_putc_ansi
-(asc_state_t s, int bgi, int fgi, uint8_t ch, palette_t pal, bool fin)
+void __bra_putc_ansi(asc_state_t s, int bgi, int fgi, uint8_t ch, bool fin)
 {
-  rgba8 bg = pal.palette[bgi], fg = pal.palette[fgi];
+  rgba8 bg = s.palette->palette[bgi], fg = s.palette->palette[fgi];
   FILE *fp = s.out_file;
   switch (s.args.out_format)
   {
