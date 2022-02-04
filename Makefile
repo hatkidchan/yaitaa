@@ -19,7 +19,12 @@ yaitaa: lib
 obj/%.o: src/%.c
 	$(CC) $(CFLAGS) $^ $(INCLUDES) -DVERSION="\"$(VERSION)\"" -c -o $@
 
-testbuild:
-	make clean all CC=clang
+testbuild: use_clang use_tcc
 	make clean all
 	oclint src/*.c
+
+use_clang:
+	make clean all CC=clang
+
+use_tcc:
+	make clean all CC=tcc CFLAGS="$(CFLAGS) -DSTBI_NO_SIMD"

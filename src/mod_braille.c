@@ -46,11 +46,8 @@ void mod_braille_main(asc_state_t state)
 {
   image_t *img = state.image;
   
-  uint8_t braille_char = 0x00;
-  rgba8 block[8];
-  
-  rgba8 color_max, color_min;
-  int dist_max, dist_min, dist_min_d = 0xffffff, dist;
+  rgba8 bright, dark, block[8];
+  int dist_max, dist_min, dist;
   
   __bra_start_output(state);
   for (int y = 0; y < img->height; y += 4)
@@ -60,35 +57,33 @@ void mod_braille_main(asc_state_t state)
     for (int x = 0; x < img->width; x += 2)
     {
       __bra_update2x4(img, block, x, y);
-      color_max = color_min = block[0];
 
-      dist_max = 0;
-      dist_min = dist_min_d;
+      bright = dark = block[0];
+      dist_max = 0; dist_min = 0xFFFFFF;
       for (int i = 0; i < 8; i++)
       {
         dist = color_difference(block[i], PURE_BLACK);
         if (dist < dist_min)
         {
           dist_min = dist;
-          color_min = block[i];
+          dark = block[i];
         }
         if (dist > dist_max)
         {
           dist_max = dist;
-          color_max = block[i];
+          bright = block[i];
         }
       }
       
-      braille_char = 0x00;
+      uint8_t pixel = 0x00;
       for (int i = 0; i < 8; i++)
       {
-        if (__bra_best_match_i(color_min, color_max, block[i]) != 0)
+        if (__bra_best_match_i(dark, bright, block[i]) != 0)
         {
-          braille_char |= (1 << i);
+          pixel |= (1 << i);
         }
       }
-      __bra_put_pixel(state, color_min, color_max,
-          braille_char, x >= (img->width - 2));
+      __bra_put_pixel(state, dark, bright, pixel, x >= (img->width - 2));
     }
     __bra_end_line(state, final);
   }
@@ -106,11 +101,6 @@ void __bra_putc_raw(asc_state_t state, uint8_t ch)
   fputc(0xe2, state.out_file);
   fputc(0x80 | ((ccode >> 6) & 0x3f), state.out_file);
   fputc(0x80 | ((ccode >> 0) & 0x3f), state.out_file);
-}
-
-void __bra_putc_esc(asc_state_t state, uint8_t ch)
-{
-  fprintf(state.out_file, "\\u28%02x", ch);
 }
 
 void __bra_start_output(asc_state_t state)

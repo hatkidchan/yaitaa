@@ -1,5 +1,5 @@
 /*
- * yaitaa - yet another image to ascii art converter
+ *  yaitaa - yet another image to ascii art converter
  *  Copyright (C) 2022  hatkidchan <hatkidchan at gmail dot com>
  *
  *  This program is free software: you can redistribute it and/or modify
