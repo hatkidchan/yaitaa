@@ -167,7 +167,7 @@ bool load_palette_gpl(palette_t *pal, FILE *fp)
 
 bool load_palette_raw(palette_t *pal, FILE *fp)
 {
-  while (!feof(fp))
+  while (!feof(fp) && pal->n_colors < 256)
   {
     size_t sz = fread(&pal->palette[pal->n_colors++], 1, sizeof(rgba8), fp);
     if (sz == 0 && feof(fp)) break;
