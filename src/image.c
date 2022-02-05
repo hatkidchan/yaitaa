@@ -23,10 +23,17 @@ image_t *image_resize(image_t *img, int width, int height)
   res->width = width;
   res->height = height;
   res->pixels = calloc(width * height, sizeof(rgba8));
-  stbir_resize_uint8((const unsigned char *)img->pixels,
-      img->width, img->height, 0,
-      (unsigned char *)res->pixels,
-      res->width, res->height, 0, STBI_rgb_alpha);
+  if (img->width != width && img->height != height)
+  {
+    stbir_resize_uint8((const unsigned char *)img->pixels,
+        img->width, img->height, 0,
+        (unsigned char *)res->pixels,
+        res->width, res->height, 0, STBI_rgb_alpha);
+  }
+  else
+  {
+    memcpy(res->pixels, img->pixels, width * height * sizeof(rgba8));
+  }
   return res;
 }
 
