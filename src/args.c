@@ -89,7 +89,9 @@ void usage(int argc, char **argv)
   fprintf(stderr, "[-vhd] [-O FILE] [-W WIDTH] [-H HEIGHT] ");
   fprintf(stderr, "[-M MODE] [-S STYLE] [-F FORMAT] [-P PALETTE] ");
   fprintf(stderr, "FILE\n\n");
+#ifndef DISABLE_LOGGING
   fprintf(stderr, "-v\t\tEnable verbose mode\n");
+#endif
   fprintf(stderr, "-V\t\tShow version\n");
   fprintf(stderr, "-h\t\tShow this help\n");
   fprintf(stderr, "\n");
@@ -139,16 +141,24 @@ int parse_args(int argc, char **argv, asc_args_t *args)
   args->out_style = ASC_STL_256COLOR;
   args->mode = ASC_MOD_BLOCKS;
   args->dither = false;
+#ifndef DISABLE_LOGGING
   args->verbose = false;
+#endif
   args->charset = " .'-*+$@";
   int c;
+#ifdef DISABLE_LOGGING
+  while ((c = getopt(argc, argv, "hdVW:H:M:S:F:P:O:")) != -1)
+#else
   while ((c = getopt(argc, argv, "vhdVW:H:M:S:F:P:O:")) != -1)
+#endif
   {
     switch (c)
     {
+#ifndef DISABLE_LOGGING
       case 'v':
         args->verbose = true;
         break;
+#endif
       case 'h':
         usage(argc, argv);
         return 1;
@@ -239,6 +249,9 @@ int parse_args(int argc, char **argv, asc_args_t *args)
     return -2;
   }
   args->input_filename = argv[optind];
+#ifndef DISABLE_LOGGING
+  b_logging = args->verbose;
+#endif
   return 0;
 }
 
@@ -253,6 +266,7 @@ int prepare_state(int argc, char **argv, asc_args_t args, asc_state_t *state)
   
   // Loading image
   FILE *image_file;
+  LOG("Opening image file %s", args.input_filename);
   if ((image_file = fopen(args.input_filename, "rb")) == NULL
       || ferror(image_file) != 0)
   {
@@ -261,14 +275,19 @@ int prepare_state(int argc, char **argv, asc_args_t args, asc_state_t *state)
         args.input_filename, err, strerror(err));
     return -100 - err;
   }
+  LOG("Loading image data...");
   state->source_image = image_load(image_file);
   fclose(image_file);
+  LOG("Image loaded: %p", state->source_image);
+  LOG("Image size: %dx%d",
+      state->source_image->width, state->source_image->height);
   
   // Palette configuration
   switch (args.out_style)
   {
     case ASC_STL_PALETTE:
       {
+        LOG("Loading palette file...");
         FILE *fp = fopen(args.palette_filename, "rb");
         if (fp == NULL)
         {
@@ -285,6 +304,7 @@ int prepare_state(int argc, char **argv, asc_args_t args, asc_state_t *state)
           return -7;
         }
         fclose(fp);
+        LOG("Loaded %d colors", state->palette->n_colors);
       }  
       break;
     case ASC_STL_256COLOR:

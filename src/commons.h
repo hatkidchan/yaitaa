@@ -21,6 +21,16 @@
 #include "args.h"
 
 #define CLAMP(min, val, max) ((val)>(max)?(max):((val)<(min)?(min):(val)))
+#ifdef DISABLE_LOGGING
+#define LOG(...) 
+#else
+#define LOG(...) _log(__VA_ARGS__)
+#endif
+
+#ifndef DISABLE_LOGGING
+extern bool b_logging;
+void _log(const char *fmt, ...);
+#endif
 
 void c_fatal(int code, const char *reason);
 void m_prepare_dither(asc_state_t *state);

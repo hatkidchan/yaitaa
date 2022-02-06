@@ -25,7 +25,11 @@ void mod_blocks_prepare(asc_state_t *state)
   get_size_keep_aspect(
       state->source_image->width, state->source_image->height,
       state->args.width, state->args.height * 2, &width, &height);
+  LOG("Source size: %dx%d", state->source_image->width,
+      state->source_image->height);
+  LOG("Requested size: %dx%d", state->args.width, state->args.height * 2);
   height = (height / 2) * 2;
+  LOG("Resizing image to %dx%d", width, height);
   state->image = image_resize(state->source_image, width, height);
   if (state->args.dither)
     m_prepare_dither(state);

@@ -19,6 +19,7 @@ image_t *image_load(FILE *file)
 
 image_t *image_resize(image_t *img, int width, int height)
 {
+  LOG("Resizing image %p", img);
   image_t *res = calloc(1, sizeof(image_t));
   res->width = width;
   res->height = height;
@@ -32,8 +33,10 @@ image_t *image_resize(image_t *img, int width, int height)
   }
   else
   {
+    LOG("Same dimensions, just copying original data");
     memcpy(res->pixels, img->pixels, width * height * sizeof(rgba8));
   }
+  LOG("Resized image: %p", res);
   return res;
 }
 
@@ -52,6 +55,7 @@ void __dither_update_pixel(image_t *img, int x, int y, int err[3], float bias)
 
 image_t *image_dither_fn(image_t *img, dither_quantizer_t quantize, void *param)
 {
+  LOG("Dithering image %p", img);
   image_t *res = calloc(1, sizeof(image_t));
   int w = res->width = img->width;
   int h = res->height = img->height;
@@ -77,6 +81,7 @@ image_t *image_dither_fn(image_t *img, dither_quantizer_t quantize, void *param)
       __dither_update_pixel(res, x + 1, y + 1, err, 1.0f / 16.0f);
     }
   }
+  LOG("Dithered image: %p", res);
   return res;
 }
 
@@ -94,6 +99,7 @@ image_t *image_dither(image_t *img, palette_t pal)
 
 void image_unload(image_t *img)
 {
+  LOG("Unloading image %p", img);
   free(img->pixels);
   free(img);
 }

@@ -1,4 +1,5 @@
 #include "colors.h"
+#include "commons.h"
 #include <math.h>
 #include <stdbool.h>
 #include <string.h>
@@ -128,6 +129,7 @@ rgba8 clamp_to_pal(palette_t pal, rgba8 color)
 
 void make_pal256(palette_t *dst, palette_t ansi)
 {
+  LOG("Creating 256-colors palette");
   if (dst->n_colors == 256) return;
   dst->n_colors = 256;
   for (int i = 0; i < 256; i++)
@@ -144,9 +146,11 @@ float calc_brightness(rgba8 c)
 
 bool load_palette_gpl(palette_t *pal, FILE *fp)
 {
+  LOG("Loading GIMP palette");
   static char buf[8192];
   fgets(buf, 8192, fp); // GIMP Palette
   fgets(buf, 8192, fp); // Name: %s
+  LOG("Palette name: %s", buf);
   fgets(buf, 8192, fp); // Columns: %d
   
   pal->n_colors = 0;
@@ -167,6 +171,7 @@ bool load_palette_gpl(palette_t *pal, FILE *fp)
 
 bool load_palette_raw(palette_t *pal, FILE *fp)
 {
+  LOG("Loading raw RGB palette");
   while (!feof(fp) && pal->n_colors < 256)
   {
     size_t sz = fread(&pal->palette[pal->n_colors++], 1, sizeof(rgba8), fp);
@@ -178,6 +183,7 @@ bool load_palette_raw(palette_t *pal, FILE *fp)
 
 bool load_palette(palette_t *pal, FILE *fp)
 {
+  LOG("Guessing palette type");
   static char head[16];
   if (fread(head, sizeof(char), 12, fp) < 12) return false;
   if (fseek(fp, 0, SEEK_SET) != 0) return false;

@@ -32,12 +32,16 @@ void __bra_update2x4(image_t *img, rgba8 block[8], int x, int y)
 
 void mod_braille_prepare(asc_state_t *state)
 {
-  int w, h;
+  int width, height;
   get_size_keep_aspect(
       state->source_image->width, state->source_image->height,
-      state->args.width * 2, state->args.height * 4, &w, &h);
-  w = (w / 2) * 2; h = (h / 4) * 4;
-  state->image = image_resize(state->source_image, w, h);
+      state->args.width * 2, state->args.height * 4, &width, &height);
+  LOG("Source size: %dx%d", state->source_image->width,
+      state->source_image->height);
+  LOG("Requested size: %dx%d", state->args.width * 2, state->args.height * 4);
+  width = (width / 2) * 2; height = (height / 4) * 4;
+  LOG("Resizing image to %dx%d", width, height);
+  state->image = image_resize(state->source_image, width, height);
   if (state->args.dither)
     m_prepare_dither(state);
 }

@@ -2,6 +2,11 @@
 #include "commons.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdarg.h>
+
+#ifndef DISABLE_LOGGING
+bool b_logging = false;
+#endif
 
 void m_prepare_dither(asc_state_t *sta)
 {
@@ -25,6 +30,19 @@ void m_prepare_dither(asc_state_t *sta)
   image_unload(sta->image);
   sta->image = res;
 }
+
+#ifndef DISABLE_LOGGING
+void _log(const char *fmt, ...)
+{
+  if (!b_logging) return;
+  va_list args;
+  va_start(args, fmt);
+  fprintf(stderr, "[INFO] ");
+  vfprintf(stderr, fmt, args);
+  fputc('\n', stderr);
+  va_end(args);
+}
+#endif
 
 void c_fatal(int code, const char *reason)
 {

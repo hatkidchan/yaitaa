@@ -57,7 +57,9 @@ typedef struct {
   asc_style_t out_style;
   asc_mode_t mode;
   bool dither;
+#ifndef DISABLE_LOGGING
   bool verbose;
+#endif
   char *charset;
 } asc_args_t;
 
