@@ -57,5 +57,12 @@ int main(int argc, char **argv)
   }
 
   handler.main(state);
+  
+  image_unload(state.image);
+  image_unload(state.source_image);
+
+  if (args.out_style == ASC_STL_PALETTE)
+    free(state.palette);
+
   return 0;
 }
