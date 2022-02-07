@@ -64,19 +64,16 @@ strip ./yaitaa
 
 #### 3. Installation
 
-It's not really designed to be installed system-wide, but if you *really* want
-to do so, do the following
-
 ```sh
-# as root (using sudo/doas/etc.)
-cp ./yaitaa /usr/local/bin/yaitaa
+# as root
+make install
 ```
 
-Alternatively, you can install it to your local directory, if it's in your
+Alternatively, you can install it to your local user directory, if it's in your
 `$PATH`:
 
 ```sh
-cp ./yaitaa ~/.local/bin/yaitaa
+make install INSTALL_PATH=$HOME/.local/bin
 ```
 
 ## License
