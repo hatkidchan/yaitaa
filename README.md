@@ -66,14 +66,14 @@ strip ./yaitaa
 
 ```sh
 # as root
-make install
+make install # Will install it to /bin/
 ```
 
 Alternatively, you can install it to your local user directory, if it's in your
 `$PATH`:
 
 ```sh
-make install INSTALL_PATH=$HOME/.local/bin
+make install PREFIX=$HOME/.local/ # will install it to $HOME/.local/bin/
 ```
 
 ## License

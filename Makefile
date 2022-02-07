@@ -14,7 +14,7 @@ clean:
 	$(RM) yaitaa obj/*
 
 install:
-	install -D -m 755 yaitaa $(INSTALL_PATH)/yaitaa
+	install -D -m 755 yaitaa $(PREFIX)/bin/yaitaa
 
 yaitaa: lib
 	$(CC) $(CFLAGS) src/main.c $(INCLUDES) $(OBJECTS) $(CLIBS) -o ./yaitaa
