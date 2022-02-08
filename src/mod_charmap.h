@@ -15,13 +15,15 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#ifndef _MOD_BLOCKS_
-#define _MOD_BLOCKS_
+#ifndef _MOD_CHARMAP_
+#define _MOD_CHARMAP_
 #include <stdio.h>
 #include "colors.h"
 #include "args.h"
 
-bool mod_blocks_prepare(asc_state_t *state);
-bool mod_blocks_main(asc_state_t state);
+#define M_CMAP_MAX_CODEPOINTS 256
+
+bool mod_cmap_prepare(asc_state_t *state);
+bool mod_cmap_main(asc_state_t state);
 
 #endif

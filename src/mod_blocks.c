@@ -19,7 +19,7 @@ void __blk_end_line(asc_state_t s, bool final);
 void __blk_end_output(asc_state_t s);
 
 
-void mod_blocks_prepare(asc_state_t *state)
+bool mod_blocks_prepare(asc_state_t *state)
 {
   int width, height;
   get_size_keep_aspect(
@@ -33,9 +33,10 @@ void mod_blocks_prepare(asc_state_t *state)
   state->image = image_resize(state->source_image, width, height);
   if (state->args.dither)
     m_prepare_dither(state);
+  return true;
 }
 
-void mod_blocks_main(asc_state_t state)
+bool mod_blocks_main(asc_state_t state)
 {
   image_t *img = state.image;
   __blk_start_output(state);
@@ -52,6 +53,7 @@ void mod_blocks_main(asc_state_t state)
     __blk_end_line(state, final);
   }
   __blk_end_output(state);
+  return true;
 }
 
 void __blk_start_output(asc_state_t state)

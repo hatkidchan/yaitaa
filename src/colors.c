@@ -141,7 +141,7 @@ void make_pal256(palette_t *dst, palette_t ansi)
 
 float calc_brightness(rgba8 c)
 {
-  return 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b;
+  return (0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b) / 255.0;
 }
 
 bool load_palette_gpl(palette_t *pal, FILE *fp)

@@ -68,11 +68,12 @@ typedef struct {
   image_t *source_image;
   image_t *image;
   palette_t *palette;
+  void *userdata;
   FILE *out_file;
 } asc_state_t;
 
-typedef void (*asc_module_initializer_fn)(asc_state_t *state);
-typedef void (*asc_module_handler_fn)(asc_state_t state);
+typedef bool (*asc_module_initializer_fn)(asc_state_t *state);
+typedef bool (*asc_module_handler_fn)(asc_state_t state);
 
 typedef struct {
   int id;

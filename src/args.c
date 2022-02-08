@@ -9,6 +9,7 @@
 #include "commons.h"
 #include "mod_blocks.h"
 #include "mod_braille.h"
+#include "mod_charmap.h"
 
 typedef struct {
   int value;
@@ -32,7 +33,7 @@ const asc_handler_t asc_handlers[ASC_MOD_ENDL + 1] = {
   { ASC_MOD_GRADIENT,
     { "g", "grd", "gradient", NULL },
     "Gradient of characters. No matching at all",
-    NULL, NULL },
+    mod_cmap_prepare, mod_cmap_main },
   { ASC_MOD_BRUTEFORCE,
     { "f", "guess", "bruteforce", NULL },
     "Looking for best possible character",
@@ -100,6 +101,7 @@ void usage(int argc, char **argv)
   fprintf(stderr, "-O FILE\t\tOutput file. Default: - (stdout)\n");
   fprintf(stderr, "-W WIDTH\tOutput width (in characters)\n");
   fprintf(stderr, "-H HEIGHT\tOutput height (in characters)\n");
+  fprintf(stderr, "-C CHARSET\tList of characters. Used in some modes\n");
   fprintf(stderr, "\n");
   fprintf(stderr, "-M MODE\t\tOutput mode\n");
   fprintf(stderr, "-S STYLE\tStyle (palette)\n");
@@ -147,9 +149,9 @@ int parse_args(int argc, char **argv, asc_args_t *args)
   args->charset = " .'-*+$@";
   int c;
 #ifdef DISABLE_LOGGING
-  while ((c = getopt(argc, argv, "hdVW:H:M:S:F:P:O:")) != -1)
+  while ((c = getopt(argc, argv, "hdVC:W:H:M:S:F:P:O:")) != -1)
 #else
-  while ((c = getopt(argc, argv, "vhdVW:H:M:S:F:P:O:")) != -1)
+  while ((c = getopt(argc, argv, "vhdVC:W:H:M:S:F:P:O:")) != -1)
 #endif
   {
     switch (c)
@@ -167,6 +169,9 @@ int parse_args(int argc, char **argv, asc_args_t *args)
         return 1;
       case 'd':
         args->dither = true;
+        break;
+      case 'C':
+        args->charset = optarg;
         break;
       case 'W':
         if ((args->width = atoi(optarg)) < 0)
@@ -281,6 +286,10 @@ int prepare_state(int argc, char **argv, asc_args_t args, asc_state_t *state)
   LOG("Image loaded: %p", state->source_image);
   LOG("Image size: %dx%d",
       state->source_image->width, state->source_image->height);
+  
+  state->image = state->source_image;
+  
+  state->userdata = NULL;
   
   // Palette configuration
   switch (args.out_style)

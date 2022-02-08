@@ -20,10 +20,9 @@
 #include <stdint.h>
 #include <string.h>
 #include "args.h"
-#include "mod_blocks.h"
-#include "mod_braille.h"
 #include "commons.h"
 
+__attribute__((annotate("oclint:suppress[high npath complexity]")))
 int main(int argc, char **argv)
 {
   asc_args_t args;
@@ -40,10 +39,14 @@ int main(int argc, char **argv)
   if (handler.prepare == NULL)
     c_fatal(12, "this mode is not implemented yet");
 
-  handler.prepare(&state);
-  handler.main(state);
+  if (!handler.prepare(&state))
+    c_fatal(15, "handler.prepare() said a big no-no");
+
+  if (!handler.main(state))
+    c_fatal(16, "handler.main() said a big no-no");
   
-  image_unload(state.image);
+  if (state.image != state.source_image)
+    image_unload(state.image);
   image_unload(state.source_image);
 
   if (args.out_style == ASC_STL_PALETTE)

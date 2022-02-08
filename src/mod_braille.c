@@ -30,7 +30,7 @@ void __bra_update2x4(image_t *img, rgba8 block[8], int x, int y)
 }
 
 
-void mod_braille_prepare(asc_state_t *state)
+bool mod_braille_prepare(asc_state_t *state)
 {
   int width, height;
   get_size_keep_aspect(
@@ -44,9 +44,10 @@ void mod_braille_prepare(asc_state_t *state)
   state->image = image_resize(state->source_image, width, height);
   if (state->args.dither)
     m_prepare_dither(state);
+  return true;
 }
 
-void mod_braille_main(asc_state_t state)
+bool mod_braille_main(asc_state_t state)
 {
   image_t *img = state.image;
   
@@ -92,6 +93,7 @@ void mod_braille_main(asc_state_t state)
     __bra_end_line(state, final);
   }
   __bra_end_output(state);
+  return true;
 }
 
 int __bra_best_match_i(rgba8 a, rgba8 b, rgba8 t)

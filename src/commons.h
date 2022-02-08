@@ -32,8 +32,12 @@ extern bool b_logging;
 void _log(const char *fmt, ...);
 #endif
 
-void c_fatal(int code, const char *reason);
+void c_fatal(int code, const char *reason, ...);
 void m_prepare_dither(asc_state_t *state);
 palette_t *get_palette_by_id(asc_style_t stl);
+
+int get_codepoint(char *text, int *processed);
+int set_codepoint(char *buf, int codepoint);
+int n_codepoints(char *text);
 
 #endif
