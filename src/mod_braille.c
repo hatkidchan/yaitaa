@@ -98,7 +98,8 @@ bool mod_braille_main(asc_state_t state)
 
 int __bra_best_match_i(rgba8 a, rgba8 b, rgba8 t)
 {
-  return color_difference(a, t) < color_difference(b, t) ? 0 : 1;
+  int diff_a = color_difference(a, t), diff_b = color_difference(b, t);
+  return diff_a == diff_b ? 0 : diff_a < diff_b ? 0 : 1;
 }
 
 void __bra_putc_raw(asc_state_t state, uint8_t ch)
@@ -152,6 +153,8 @@ void __bra_put_pixel(asc_state_t s, rgba8 min, rgba8 max, uint8_t ch, bool fin)
           clamp_to_pal(*s.palette, max), ch, fin);
       break;
     case ASC_STL_BLACKWHITE:
+      __bra_putc_raw(s, ch);
+      break;
     case ASC_STL_ENDL:
       break;
   }
